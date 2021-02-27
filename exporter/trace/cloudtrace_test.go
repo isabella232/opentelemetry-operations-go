@@ -17,6 +17,7 @@ package trace
 import (
 	"context"
 	"log"
+	"net"
 	"os"
 	"regexp"
 	"sync"
@@ -30,8 +31,12 @@ import (
 
 	"github.com/googleinterns/cloud-operations-api-mock/cloudmock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
 	tracepb "google.golang.org/genproto/googleapis/devtools/cloudtrace/v2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func TestExporter_ExportSpan(t *testing.T) {
@@ -315,4 +320,49 @@ type logBuffer struct {
 func (lb *logBuffer) Write(b []byte) (n int, err error) {
 	lb.logInputChan <- b
 	return len(b), nil
+}
+
+type mock struct {
+	tracepb.UnimplementedTraceServiceServer
+	batchWriteSpans func(ctx context.Context, req *tracepb.BatchWriteSpansRequest) (*emptypb.Empty, error)
+}
+
+func (m *mock) BatchWriteSpans(ctx context.Context, req *tracepb.BatchWriteSpansRequest) (*emptypb.Empty, error) {
+	return m.batchWriteSpans(ctx, req)
+}
+
+func TestJustForFun(t *testing.T) {
+	server := grpc.NewServer()
+	t.Cleanup(server.Stop)
+
+	ch := make(chan []string, 1)
+
+	m := mock{
+		batchWriteSpans: func(ctx context.Context, req *tracepb.BatchWriteSpansRequest) (*emptypb.Empty, error) {
+			md, _ := metadata.FromIncomingContext(ctx)
+			ch <- md.Get("User-Agent")
+			return &emptypb.Empty{}, nil
+		},
+	}
+	tracepb.RegisterTraceServiceServer(server, &m)
+
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	go server.Serve(lis)
+
+	conn, err := grpc.Dial(
+		lis.Addr().String(),
+		grpc.WithInsecure(),
+		grpc.WithUserAgent("foo"),
+	)
+	require.NoError(t, err)
+
+	client := tracepb.NewTraceServiceClient(conn)
+
+	_, err = client.BatchWriteSpans(context.Background(), &tracepb.BatchWriteSpansRequest{})
+	require.NoError(t, err)
+
+	ua := <-ch
+	require.Equal(t, "foo", ua[0])
 }
