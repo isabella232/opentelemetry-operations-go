@@ -66,7 +66,7 @@ func main() {
 		label.String("instance_id", "abc123"),
 		label.String("application", "example-app"),
 	))
-	pusher, err := mexporter.InstallNewPipeline(opts, resOpt)
+	pusher, err := mexporter.InstallNewPipeline(context.Background(), opts, resOpt)
 	if err != nil {
 		log.Fatalf("Failed to establish pipeline: %v", err)
 	}

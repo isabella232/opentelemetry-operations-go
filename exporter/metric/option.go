@@ -15,7 +15,6 @@
 package metric
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -46,14 +45,6 @@ type options struct {
 	// to the underlying Stackdriver Monitoring API client.
 	// Optional.
 	MonitoringClientOptions []apioption.ClientOption
-
-	// Context allows you to provide a custom context for API calls.
-	//
-	// This context will be used several times: first, to create Cloud Monitoring
-	// clients, and then every time a new batch of metrics needs to be uploaded.
-	//
-	// If unset, context.Background() will be used.
-	Context context.Context
 
 	// ReportingInterval sets the interval between reporting metrics.
 	// If it is set to zero then default value is used.

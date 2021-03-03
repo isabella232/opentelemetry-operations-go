@@ -49,14 +49,14 @@ type Exporter struct {
 }
 
 // NewRawExporter creates a new Exporter thats implements metric.Exporter.
-func NewRawExporter(opts ...Option) (*Exporter, error) {
-	o := options{Context: context.Background()}
+func NewRawExporter(ctx context.Context, opts ...Option) (*Exporter, error) {
+	var o options
 	for _, opt := range opts {
 		opt(&o)
 	}
 
 	if o.ProjectID == "" {
-		creds, err := google.FindDefaultCredentials(o.Context, monitoring.DefaultAuthScopes()...)
+		creds, err := google.FindDefaultCredentials(ctx, monitoring.DefaultAuthScopes()...)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to find Google Cloud credentials: %v", err)
 		}
@@ -72,7 +72,7 @@ func NewRawExporter(opts ...Option) (*Exporter, error) {
 		return nil, errReportingIntervalTooLow
 	}
 
-	me, err := newMetricExporter(&o)
+	me, err := newMetricExporter(ctx, &o)
 	if err != nil {
 		return nil, err
 	}

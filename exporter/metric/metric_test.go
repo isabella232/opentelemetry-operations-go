@@ -72,7 +72,7 @@ func TestExportMetrics(t *testing.T) {
 		WithMetricDescriptorTypeFormatter(formatter),
 	}
 
-	exporter, err := NewRawExporter(opts...)
+	exporter, err := NewRawExporter(ctx, opts...)
 	if err != nil {
 		t.Errorf("Error occurred when creating exporter: %v", err)
 	}
@@ -94,6 +94,7 @@ func TestExportCounter(t *testing.T) {
 	)
 
 	pusher, err := InstallNewPipeline(
+		context.Background(),
 		[]Option{
 			WithProjectID("PROJECT_ID_NOT_REAL"),
 			WithMonitoringClientOptions(clientOpt),
@@ -498,7 +499,7 @@ func TestExportMetricsWithUserAgent(t *testing.T) {
 		WithMetricDescriptorTypeFormatter(formatter),
 	}
 
-	exporter, err := NewRawExporter(opts...)
+	exporter, err := NewRawExporter(ctx, opts...)
 	if err != nil {
 		t.Errorf("Error occurred when creating exporter: %v", err)
 	}

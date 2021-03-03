@@ -125,16 +125,12 @@ var cloudRunResourceMap = map[string]string{
 }
 
 // newMetricExporter returns an exporter that uploads OTel metric data to Google Cloud Monitoring.
-func newMetricExporter(o *options) (*metricExporter, error) {
+func newMetricExporter(ctx context.Context, o *options) (*metricExporter, error) {
 	if strings.TrimSpace(o.ProjectID) == "" {
 		return nil, errBlankProjectID
 	}
 
 	clientOpts := append(o.MonitoringClientOptions, option.WithUserAgent(userAgent))
-	ctx := o.Context
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	client, err := monitoring.NewMetricClient(ctx, clientOpts...)
 	if err != nil {
 		return nil, err
@@ -151,8 +147,8 @@ func newMetricExporter(o *options) (*metricExporter, error) {
 }
 
 // InstallNewPipeline instantiates a NewExportPipeline and registers it globally.
-func InstallNewPipeline(opts []Option, popts ...controller.Option) (*controller.Controller, error) {
-	pusher, err := NewExportPipeline(opts, popts...)
+func InstallNewPipeline(ctx context.Context, opts []Option, popts ...controller.Option) (*controller.Controller, error) {
+	pusher, err := NewExportPipeline(ctx, opts, popts...)
 	if err != nil {
 		return nil, err
 	}
@@ -162,9 +158,9 @@ func InstallNewPipeline(opts []Option, popts ...controller.Option) (*controller.
 
 // NewExportPipeline sets up a complete export pipeline with the recommended setup,
 // chaining a NewRawExporter into the recommended selectors and integrators.
-func NewExportPipeline(opts []Option, popts ...controller.Option) (*controller.Controller, error) {
+func NewExportPipeline(ctx context.Context, opts []Option, popts ...controller.Option) (*controller.Controller, error) {
 	selector := NewWithCloudMonitoringDistribution()
-	exporter, err := NewRawExporter(opts...)
+	exporter, err := NewRawExporter(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
