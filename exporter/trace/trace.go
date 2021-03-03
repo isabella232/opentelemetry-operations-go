@@ -49,9 +49,9 @@ const defaultBundleByteThreshold = 15000
 const defaultBundleByteLimit = 0
 const defaultBufferedByteLimit = 8 * 1024 * 1024
 
-func newTraceExporter(o *options) (*traceExporter, error) {
+func newTraceExporter(ctx context.Context, o *options) (*traceExporter, error) {
 	clientOps := append(o.TraceClientOptions, option.WithUserAgent(userAgent))
-	client, err := traceclient.NewClient(o.Context, clientOps...)
+	client, err := traceclient.NewClient(ctx, clientOps...)
 	if err != nil {
 		return nil, fmt.Errorf("stackdriver: couldn't initiate trace client: %v", err)
 	}

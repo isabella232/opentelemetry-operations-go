@@ -80,17 +80,6 @@ type options struct {
 	// Stackdriver Trace.
 	DefaultTraceAttributes map[string]interface{}
 
-	// Context allows you to provide a custom context for API calls.
-	//
-	// This context will be used several times: first, to create Stackdriver
-	// trace and metric clients, and then every time a new batch of traces or
-	// stats needs to be uploaded.
-	//
-	// Do not set a timeout on this context. Instead, set the Timeout option.
-	//
-	// If unset, context.Background() will be used.
-	Context context.Context
-
 	// Timeout for all API calls. If not set, defaults to 5 seconds.
 	Timeout time.Duration
 
@@ -124,14 +113,6 @@ func WithOnError(onError func(err error)) func(o *options) {
 func WithTraceClientOptions(opts []option.ClientOption) func(o *options) {
 	return func(o *options) {
 		o.TraceClientOptions = opts
-	}
-}
-
-// WithContext sets the context that trace exporter and metric exporter
-// relies on.
-func WithContext(ctx context.Context) func(o *options) {
-	return func(o *options) {
-		o.Context = ctx
 	}
 }
 
@@ -170,8 +151,8 @@ type Exporter struct {
 }
 
 // InstallNewPipeline instantiates a NewExportPipeline and registers it globally.
-func InstallNewPipeline(opts []Option, topts ...sdktrace.TracerProviderOption) (trace.TracerProvider, func(), error) {
-	tp, shutdown, err := NewExportPipeline(opts, topts...)
+func InstallNewPipeline(ctx context.Context, opts []Option, topts ...sdktrace.TracerProviderOption) (trace.TracerProvider, func(), error) {
+	tp, shutdown, err := NewExportPipeline(ctx, opts, topts...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -181,13 +162,13 @@ func InstallNewPipeline(opts []Option, topts ...sdktrace.TracerProviderOption) (
 
 // NewExportPipeline sets up a complete export pipeline with the recommended setup
 // for trace provider. Returns provider, shutdown function, and errors.
-func NewExportPipeline(opts []Option, topts ...sdktrace.TracerProviderOption) (trace.TracerProvider, func(), error) {
+func NewExportPipeline(ctx context.Context, opts []Option, topts ...sdktrace.TracerProviderOption) (trace.TracerProvider, func(), error) {
 	// TODO(suereth): Don't flesh options twice.
-	o := options{Context: context.Background()}
+	var o options
 	for _, opt := range opts {
 		opt(&o)
 	}
-	exporter, err := NewExporterWithOptions(&o)
+	exporter, err := NewExporterWithOptions(ctx, &o)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -200,20 +181,20 @@ func NewExportPipeline(opts []Option, topts ...sdktrace.TracerProviderOption) (t
 }
 
 // NewExporter creates a new Exporter thats implements trace.Exporter.
-func NewExporter(opts ...Option) (*Exporter, error) {
-	o := options{Context: context.Background()}
+func NewExporter(ctx context.Context, opts ...Option) (*Exporter, error) {
+	var o options
 	for _, opt := range opts {
 		opt(&o)
 	}
-	return NewExporterWithOptions(&o)
+	return NewExporterWithOptions(ctx, &o)
 }
 
 // NewExporter creates a new Exporter thats implements trace.Exporter.
 // This version takes a single options struct.  This shouldn't be called
 // by user code, instead use `NewExportPipeline` or `NewExporter`.
-func NewExporterWithOptions(o *options) (*Exporter, error) {
+func NewExporterWithOptions(ctx context.Context, o *options) (*Exporter, error) {
 	if o.ProjectID == "" {
-		creds, err := google.FindDefaultCredentials(o.Context, traceapi.DefaultAuthScopes()...)
+		creds, err := google.FindDefaultCredentials(ctx, traceapi.DefaultAuthScopes()...)
 		if err != nil {
 			return nil, fmt.Errorf("stackdriver: %v", err)
 		}
@@ -222,7 +203,7 @@ func NewExporterWithOptions(o *options) (*Exporter, error) {
 		}
 		o.ProjectID = creds.ProjectID
 	}
-	te, err := newTraceExporter(o)
+	te, err := newTraceExporter(ctx, o)
 	if err != nil {
 		return nil, err
 	}

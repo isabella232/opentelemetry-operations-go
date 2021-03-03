@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
@@ -28,12 +29,13 @@ import (
 	cloudtrace "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 )
 
-func initTracer() func() {
+func initTracer(ctx context.Context) func() {
 	projectID := os.Getenv("PROJECT_ID")
 
 	// Create Google Cloud Trace exporter to be able to retrieve
 	// the collected spans.
 	_, shutdown, err := cloudtrace.InstallNewPipeline(
+		ctx,
 		[]cloudtrace.Option{cloudtrace.WithProjectID(projectID)},
 		// For this example code we use sdktrace.AlwaysSample sampler to sample all traces.
 		// In a production application, use sdktrace.ProbabilitySampler with a desired probability.
@@ -46,7 +48,7 @@ func initTracer() func() {
 }
 
 func main() {
-	shutdown := initTracer()
+	shutdown := initTracer(context.Background())
 	defer shutdown()
 
 	helloHandler := func(w http.ResponseWriter, req *http.Request) {

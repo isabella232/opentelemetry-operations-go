@@ -45,6 +45,7 @@ func TestExporter_ExportSpan(t *testing.T) {
 
 	// Create Google Cloud Trace Exporter
 	_, shutdown, err := InstallNewPipeline(
+		context.Background(),
 		[]Option{
 			WithProjectID("PROJECT_ID_NOT_REAL"),
 			WithTraceClientOptions(clientOpt),
@@ -82,6 +83,7 @@ func TestExporter_DisplayNameFormatter(t *testing.T) {
 
 	// Create Google Cloud Trace Exporter
 	_, shutdown, err := InstallNewPipeline(
+		context.Background(),
 		[]Option{
 			WithProjectID("PROJECT_ID_NOT_REAL"),
 			WithTraceClientOptions(clientOpt),
@@ -111,6 +113,7 @@ func TestExporter_Timeout(t *testing.T) {
 
 	// Create Google Cloud Trace Exporter
 	_, shutdown, err := InstallNewPipeline(
+		context.Background(),
 		[]Option{
 			WithProjectID("PROJECT_ID_NOT_REAL"),
 			WithTraceClientOptions(clientOpt),
@@ -189,6 +192,7 @@ func TestExporter_ExportWithUserAgent(t *testing.T) {
 	}
 	// Create Google Cloud Trace Exporter
 	_, shutdown, err := InstallNewPipeline(
+		context.Background(),
 		[]Option{
 			WithProjectID("PROJECT_ID_NOT_REAL"),
 			WithTraceClientOptions(clientOpt),
